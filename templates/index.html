@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pencil Sketch Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* slate-900 */
+        }
+        .glass-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .transition-all {
+            transition: all 0.3s ease-in-out;
+        }
+        /* Decorative background blobs */
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            z-index: -1;
+            filter: blur(100px);
+            border-radius: 50%;
+            pointer-events: none; /* Make sure blobs don't interfere with interaction */
+        }
+        body::before {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(to right, #4f46e5, #ec4899);
+            top: -50px;
+            left: -100px;
+            animation: move-blob 15s infinite alternate;
+        }
+        body::after {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, #14b8a6, #a855f7);
+            bottom: -100px;
+            right: -150px;
+            animation: move-blob 20s infinite alternate-reverse;
+        }
+
+        @keyframes move-blob {
+            from {
+                transform: rotate(0deg) scale(1) translateX(0px);
+            }
+            to {
+                transform: rotate(360deg) scale(1.1) translateX(50px);
+            }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 text-gray-200">
+
+    <div class="glass-container rounded-2xl shadow-2xl p-6 md:p-10 w-full max-w-4xl z-10 my-8">
+
+        <!-- Header -->
+        <div class="text-center border-b border-white/10 pb-6 mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Pencil Sketch AI</h1>
+            <p class="text-gray-400 mt-2">Upload your photo and watch it transform into a work of art.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <!-- Left Column: Upload & Controls -->
+            <div id="upload-section">
+                <form id="upload-form" enctype="multipart/form-data">
+                    <div class="mb-4">
+                         <label for="file-input" class="group block w-full text-center cursor-pointer border-2 border-dashed border-gray-600 rounded-xl p-8 hover:border-indigo-500 hover:bg-white/5 transition-all">
+                            <div class="flex flex-col items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-500 group-hover:text-indigo-400 transition-all" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <p id="file-text" class="mt-4 text-lg text-gray-400 group-hover:text-indigo-300 transition-all">
+                                    <span class="font-semibold text-gray-300">Click to upload</span> or drag and drop
+                                </p>
+                                <p class="text-sm text-gray-500 mt-1">PNG, JPG, JPEG up to 10MB</p>
+                            </div>
+                            <input type='file' class="hidden" id="file-input" name="file" accept="image/png, image/jpeg, image/jpg" />
+                        </label>
+                    </div>
+                    <button id="submit-button" type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-all transform hover:scale-105 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-indigo-600/30">
+                        Generate Sketch
+                    </button>
+                </form>
+                 <!-- Error Message -->
+                <div id="error" class="hidden mt-4 bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg" role="alert">
+                    <strong class="font-bold">Error:</strong>
+                    <span id="error-message"></span>
+                </div>
+            </div>
+
+            <!-- Right Column: Image Preview & Result -->
+            <div id="result-section" class="relative">
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Original Image -->
+                    <div id="original-image-container" class="hidden">
+                         <h3 class="text-lg font-semibold text-gray-300 mb-2 text-center">Original</h3>
+                         <div class="aspect-w-1 aspect-h-1 glass-container rounded-xl p-1">
+                            <img id="original-image" src="#" alt="Original Upload" class="rounded-lg object-cover w-full h-full">
+                         </div>
+                    </div>
+
+                    <!-- Sketch Image -->
+                     <div id="sketch-image-container" class="hidden">
+                         <h3 class="text-lg font-semibold text-gray-300 mb-2 text-center">Sketch</h3>
+                         <div class="aspect-w-1 aspect-h-1 glass-container rounded-xl p-1">
+                            <img id="sketch-image" src="#" alt="Generated Sketch" class="rounded-lg object-cover w-full h-full">
+                         </div>
+                          <a id="download-link" href="#" download class="block w-full text-center mt-4 bg-emerald-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50 transition-all transform hover:scale-105 shadow-lg shadow-emerald-500/30">
+                            Download Sketch
+                        </a>
+                    </div>
+                </div>
+                
+                 <!-- Loading Overlay -->
+                <div id="loading" class="hidden absolute inset-0 bg-slate-900/50 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl">
+                    <div class="w-16 h-16 border-4 border-t-indigo-500 border-gray-600 rounded-full animate-spin"></div>
+                    <p class="text-gray-300 font-semibold mt-4">Sketching in progress...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file-input');
+        const fileText = document.getElementById('file-text');
+        const submitButton = document.getElementById('submit-button');
+        const loadingDiv = document.getElementById('loading');
+        
+        const originalImageContainer = document.getElementById('original-image-container');
+        const originalImage = document.getElementById('original-image');
+        const sketchImageContainer = document.getElementById('sketch-image-container');
+        const sketchImage = document.getElementById('sketch-image');
+        
+        const downloadLink = document.getElementById('download-link');
+        const errorDiv = document.getElementById('error');
+        const errorMessage = document.getElementById('error-message');
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileText.innerHTML = `<span class="font-semibold text-indigo-400">${file.name}</span>`;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    originalImage.src = e.target.result;
+                    originalImageContainer.classList.remove('hidden');
+                    sketchImageContainer.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+
+            } else {
+                fileText.innerHTML = `<span class="font-semibold">Click to upload</span> or drag and drop`;
+                originalImageContainer.classList.add('hidden');
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!fileInput.files.length) {
+                showError('Please select a file to upload.');
+                return;
+            }
+
+            hideError();
+            sketchImageContainer.classList.add('hidden');
+            loadingDiv.classList.remove('hidden');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Generating...';
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    sketchImage.src = data.sketch_url;
+                    downloadLink.href = data.sketch_url;
+                    sketchImageContainer.classList.remove('hidden');
+                } else {
+                    showError(data.error || 'An unknown error occurred.');
+                    originalImageContainer.classList.add('hidden');
+                }
+            } catch (error) {
+                showError('Could not connect to the server. Please try again.');
+                originalImageContainer.classList.add('hidden');
+            } finally {
+                loadingDiv.classList.add('hidden');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Generate Sketch';
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorDiv.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
